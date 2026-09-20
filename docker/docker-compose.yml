@@ -1,0 +1,117 @@
+services:
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+
+    container_name: tender-backend
+
+    env_file:
+      - ../backend/.env
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ../backend:/app
+
+    depends_on:
+      - db
+      - redis
+      - qdrant
+      - minio
+
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/tender_ai
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      S3_ENDPOINT: http://minio:9000
+
+    restart: unless-stopped
+
+    networks:
+      - tender-network
+
+
+  db:
+    image: postgres:16
+
+    container_name: tender-postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tender_ai
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - ../storage/postgres:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+    networks:
+      - tender-network
+
+
+  redis:
+    image: redis:7-alpine
+
+    container_name: tender-redis
+
+    ports:
+      - "6379:6379"
+
+    restart: unless-stopped
+
+    networks:
+      - tender-network
+
+
+  qdrant:
+    image: qdrant/qdrant:latest
+
+    container_name: tender-qdrant
+
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+    volumes:
+      - ../storage/qdrant:/qdrant/storage
+
+    restart: unless-stopped
+
+    networks:
+      - tender-network
+
+
+  minio:
+    image: minio/minio:latest
+
+    container_name: tender-minio
+
+    command: server /data --console-address ":9001"
+
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    volumes:
+      - ../storage/minio:/data
+
+    restart: unless-stopped
+
+    networks:
+      - tender-network
+
+
+networks:
+  tender-network:
+    driver: bridge

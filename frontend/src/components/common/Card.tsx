@@ -1,0 +1,18 @@
+import { ReactNode } from "react";
+
+interface CardProps {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export function Card({ children, className = "", onClick }: CardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={`rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md ${onClick ? "cursor-pointer" : ""} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}

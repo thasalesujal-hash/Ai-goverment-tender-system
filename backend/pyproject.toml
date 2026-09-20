@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+# Test discovery roots
+testpaths = ["tests"]
+# Async mode: auto so @pytest.mark.asyncio works on all async test functions
+asyncio_mode = "auto"
+# Minimal output noise
+log_cli = false
+log_level = "WARNING"
+# Ignore legacy app/tests which has live-DB dependent tests
+norecursedirs = ["app"]

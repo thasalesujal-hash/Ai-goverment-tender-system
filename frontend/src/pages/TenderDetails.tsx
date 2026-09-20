@@ -1,0 +1,388 @@
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { AppLayout } from "../components/layout/AppLayout";
+import { TenderHeader } from "../components/tender/TenderHeader";
+import { TenderSummary } from "../components/tender/TenderSummary";
+import { ThingsToCheck } from "../components/tender/ThingsToCheck";
+import { RequirementList } from "../components/tender/RequirementList";
+import { EligibilityPreliminary } from "../components/tender/EligibilityPreliminary";
+import { DocumentList } from "../components/tender/DocumentList";
+import { LoadingState } from "../components/common/LoadingState";
+import { EmptyState } from "../components/common/EmptyState";
+import { Button } from "../components/common/Button";
+import { tenderService } from "../services/tenderService";
+import { companyService } from "../services/companyService";
+import { savedTenderService } from "../services/savedTenderService";
+import { Tender, CompanyProfile } from "../types";
+import { Bot, Bookmark, ArrowLeft, AlertTriangle, Radio } from "lucide-react";
+
+type Tab = "overview" | "requirements" | "documents" | "chat";
+
+export default function TenderDetails() {
+  const { id } = useParams<{ id: string }>();
+  const [tender, setTender] = useState<Tender | null>(null);
+  const [company, setCompany] = useState<CompanyProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [isSaved, setIsSaved] = useState(false);
+  const [tracking, setTracking] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      if (!id) return;
+      const [tenderData, companyData, savedStatus, trackingStatus] = await Promise.all([
+        tenderService.getById(id),
+        companyService.getProfile(),
+        savedTenderService.isSaved(id),
+        savedTenderService.getTrackingStatus(id),
+      ]);
+      setTender(tenderData || null);
+      setCompany(companyData);
+      setIsSaved(savedStatus);
+      setTracking(trackingStatus === "reviewing" || trackingStatus === "submission_pending");
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
+  const handleSaveToggle = async () => {
+    if (!id || !tender) return;
+    setSaving(true);
+    if (isSaved) {
+      await savedTenderService.remove(id);
+      setIsSaved(false);
+      setTracking(false);
+    } else {
+      await savedTenderService.save(id);
+      setIsSaved(true);
+    }
+    setSaving(false);
+  };
+
+  const handleTrackToggle = async () => {
+    if (!id) return;
+    setTracking((prev) => !prev);
+    await savedTenderService.updateTrackingStatus(id, tracking ? "saved" : "reviewing");
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <LoadingState lines={5} />
+      </AppLayout>
+    );
+  }
+
+  if (!tender) {
+    return (
+      <AppLayout>
+        <EmptyState
+          icon={<Bot size={48} />}
+          title="Tender not found"
+          description="The tender you are looking for does not exist or has been removed."
+          actionLabel="Find Tenders"
+          onAction={() => (window.location.href = "/tenders")}
+        />
+      </AppLayout>
+    );
+  }
+
+  const missingRequired = tender.requirements.filter((r) => !r.met && r.required).length;
+  const metCount = tender.requirements.filter((r) => r.met).length;
+  const totalRequirements = tender.requirements.length;
+  const readinessPercentage = Math.round((metCount / totalRequirements) * 100);
+
+  const matchReasons = [
+    tender.requirements.some((r) => r.label.toLowerCase().includes("experience") && r.met) && "Experience match",
+    tender.requirements.some((r) => r.label.toLowerCase().includes("gst") && r.met) && "GST available",
+    tender.valueNumeric <= 200000000 && "Project value within range",
+  ].filter(Boolean);
+
+  const potentialIssues = tender.requirements.filter((r) => !r.met && r.required).map((r) => r.label);
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "requirements", label: "Requirements" },
+    { id: "documents", label: "Documents" },
+    { id: "chat", label: "Tender Copilot" },
+  ];
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to={`/tenders`}>
+            <button className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
+              <ArrowLeft size={18} />
+              Back to Tenders
+            </button>
+          </Link>
+        </div>
+
+        <TenderHeader tender={tender} />
+
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant={isSaved ? "primary" : "outline"}
+            onClick={handleSaveToggle}
+            disabled={saving}
+          >
+            <Bookmark size={18} className="mr-2" />
+            {isSaved ? "Saved" : "Save Tender"}
+          </Button>
+          {isSaved && (
+            <Button variant={tracking ? "primary" : "outline"} onClick={handleTrackToggle}>
+              <Radio size={18} className="mr-2" />
+              {tracking ? "Tracking ON" : "Track Tender"}
+            </Button>
+          )}
+          <Link to={`/compare?tender=${tender.id}`}>
+            <Button variant="outline">Compare</Button>
+          </Link>
+        </div>
+
+        {tender.aiSummary && <TenderSummary summary={tender.aiSummary} />}
+
+        {tender.thingsToCheck && tender.thingsToCheck.length > 0 && (
+          <ThingsToCheck items={tender.thingsToCheck} />
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Tender Readiness</h3>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-slate-600">Preliminary readiness</span>
+                    <span className="text-sm font-medium text-slate-900">{readinessPercentage}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-200">
+                    <div
+                      className="h-2 rounded-full bg-blue-600 transition-all"
+                      style={{ width: `${readinessPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {tender.requirements.map((req, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    {req.met ? (
+                      <span className="text-green-600">✓</span>
+                    ) : req.required ? (
+                      <span className="text-red-600">☐</span>
+                    ) : (
+                      <span className="text-amber-600">⚠</span>
+                    )}
+                    <span className={req.met ? "text-slate-700" : req.required ? "text-slate-900 font-medium" : "text-slate-600"}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {missingRequired > 0 && (
+                <Button variant="outline" size="sm" className="mt-4">
+                  View Missing Requirements
+                </Button>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Why This Tender Matches Your Company</h3>
+              <div className="space-y-2">
+                {matchReasons.map((reason, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-green-700">
+                    <span>✓</span>
+                    {reason as string}
+                  </div>
+                ))}
+                {potentialIssues.map((issue, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-amber-700">
+                    <span>⚠</span>
+                    {issue}
+                  </div>
+                ))}
+              </div>
+              <Link to="/company">
+                <Button variant="outline" size="sm" className="mt-4">
+                  View Company Profile
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {company && (
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900">Your Profile</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Experience</span>
+                    <span className="font-medium text-slate-900">{company.relevantExperience} years</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Turnover</span>
+                    <span className="font-medium text-slate-900">{company.annualTurnover}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Projects</span>
+                    <span className="font-medium text-slate-900">{company.similarProjects}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tender.timeline && tender.timeline.length > 0 && (
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900">Tender Timeline</h3>
+                <div className="space-y-4">
+                  {tender.timeline.map((event, index) => (
+                    <div key={index} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`flex h-3 w-3 rounded-full ${
+                            event.completed ? "bg-green-500" : "bg-slate-300"
+                          }`}
+                        />
+                        {index < tender.timeline!.length - 1 && (
+                          <div
+                            className={`h-8 w-0.5 ${
+                              event.completed ? "bg-green-200" : "bg-slate-200"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${event.completed ? "text-slate-900" : "text-slate-500"}`}>
+                          {event.label}
+                        </p>
+                        <p className="text-xs text-slate-500">{event.date}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200">
+            <nav className="-mb-px flex gap-6 overflow-x-auto px-4">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`border-b-2 whitespace-nowrap pb-3 text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.id === "requirements" && missingRequired > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      <AlertTriangle size={12} />
+                      {missingRequired}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">Tender Description</h3>
+                  <p className="text-sm leading-relaxed text-slate-700">{tender.description}</p>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">Important Dates</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">Submission Deadline</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.deadline}</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">EMD Submission</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.emd}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">Basic Information</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">Department</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.department}</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">Location</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.location}</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">Estimated Value</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.value}</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-xs text-slate-500">Tender ID</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{tender.id}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "requirements" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-900">Tender Requirements</h3>
+                <p className="text-sm text-slate-500">
+                  {totalRequirements} requirements identified • {metCount} met • {missingRequired} missing
+                </p>
+                <RequirementList requirements={tender.requirements} />
+                {company && (
+                  <EligibilityPreliminary tender={tender} company={company} />
+                )}
+              </div>
+            )}
+
+            {activeTab === "documents" && (
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900">Tender Documents</h3>
+                  <Link to={`/tenders/${tender.id}/chat`}>
+                    <Button size="sm">
+                      <Bot size={16} className="mr-1" />
+                      Ask AI About Documents
+                    </Button>
+                  </Link>
+                </div>
+                <DocumentList documents={tender.documents} />
+              </div>
+            )}
+
+            {activeTab === "chat" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-900">Tender Copilot</h3>
+                <p className="text-sm text-slate-600">
+                  Ask any question about this tender and our AI will help you find answers from the
+                  documents.
+                </p>
+                <Link to={`/tenders/${tender.id}/chat`}>
+                  <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700">
+                    <Bot size={18} />
+                    Open Tender Copilot
+                  </button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

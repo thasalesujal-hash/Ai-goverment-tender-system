@@ -1,0 +1,48 @@
+import { Recommendation } from "../types";
+
+export const recommendations: Recommendation[] = [
+  {
+    id: "REC-001",
+    tenderId: "TEN-2024-001",
+    title: "Construction of Road from Pune to Mumbai Expressway",
+    department: "PWD Maharashtra",
+    location: "Pune",
+    value: "₹12.5 Cr",
+    deadline: "28 Sep 2026",
+    matchPercentage: 94,
+    matchReasons: ["Experience", "Turnover", "Location", "Project type"],
+  },
+  {
+    id: "REC-002",
+    tenderId: "TEN-2024-002",
+    title: "Supply of Medical Equipment to District Hospitals",
+    department: "Health Department Maharashtra",
+    location: "Mumbai",
+    value: "₹3.2 Cr",
+    deadline: "05 Oct 2026",
+    matchPercentage: 88,
+    matchReasons: ["Experience", "Turnover", "Location"],
+  },
+  {
+    id: "REC-003",
+    tenderId: "TEN-2024-005",
+    title: "IT Infrastructure Upgrade for Government Offices",
+    department: "IT Department",
+    location: "Thane",
+    value: "₹5.5 Cr",
+    deadline: "20 Oct 2026",
+    matchPercentage: 91,
+    matchReasons: ["Experience", "Turnover", "Project type", "Certifications"],
+  },
+  {
+    id: "REC-004",
+    tenderId: "TEN-2024-004",
+    title: "School Building Construction — Rural Development Program",
+    department: "Education Department",
+    location: "Nashik",
+    value: "₹8.7 Cr",
+    deadline: "10 Oct 2026",
+    matchPercentage: 85,
+    matchReasons: ["Experience", "Location", "Project type"],
+  },
+];
