@@ -5,16 +5,18 @@ import { LoadingState } from "../components/common/LoadingState";
 import { EmptyState } from "../components/common/EmptyState";
 import { notificationService } from "../services/notificationService";
 import { Notification } from "../types";
-import { Bell, Clock, FileText, AlertTriangle, Sparkles } from "lucide-react";
+import { Bell, Clock, AlertTriangle, Sparkles, RefreshCw, MessageCircle } from "lucide-react";
 
 const notificationConfig: Record<string, { icon: React.ReactNode; variant: "info" | "success" | "warning" | "danger" }> = {
   new_tender: { icon: <Sparkles size={20} />, variant: "info" },
   deadline: { icon: <Clock size={20} />, variant: "warning" },
-  updated: { icon: <FileText size={20} />, variant: "info" },
+  updated: { icon: <RefreshCw size={20} />, variant: "info" },
   corrigendum: { icon: <AlertTriangle size={20} />, variant: "danger" },
+  profile_update: { icon: <MessageCircle size={20} />, variant: "success" },
+  status_changed: { icon: <Bell size={20} />, variant: "info" },
 };
 
-export default function Alerts() {
+export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,9 @@ export default function Alerts() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Alerts</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+            Notifications
+          </h1>
           <p className="mt-2 text-slate-600">
             Stay updated with tender notifications and important updates.
           </p>
@@ -46,20 +50,18 @@ export default function Alerts() {
               return (
                 <Card
                   key={notification.id}
-                  className={`p-4 ${!notification.read ? "border-blue-200 bg-blue-50" : ""}`}
+                  className={!notification.read ? "border-blue-200 bg-blue-50" : ""}
                 >
                   <div className="flex gap-4">
                     <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                        notification.read ? "bg-slate-100 text-slate-600" : "bg-blue-100 text-blue-600"
-                      }`}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                     >
                       {config.icon}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="text-sm font-semibold text-slate-900">
+                          <h3 className="text-sm font-medium text-slate-900">
                             {notification.title}
                           </h3>
                           <p className="mt-1 text-sm text-slate-600">{notification.message}</p>
@@ -79,7 +81,7 @@ export default function Alerts() {
           <EmptyState
             icon={<Bell size={48} />}
             title="No notifications"
-            description="You're all caught up! New alerts will appear here."
+            description="You are all caught up! New notifications will appear here."
           />
         )}
       </div>

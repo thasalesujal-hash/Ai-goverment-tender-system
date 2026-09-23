@@ -54,5 +54,6 @@ frontend/.env
 *.swp
 *.swo
 *~
+*.backup
 .DS_Store
 Thumbs.db

@@ -59,7 +59,7 @@ export interface Recommendation {
 
 export interface Notification {
   id: string;
-  type: "new_tender" | "deadline" | "updated" | "corrigendum";
+  type: "new_tender" | "deadline" | "updated" | "corrigendum" | "profile_update" | "status_changed";
   title: string;
   message: string;
   time: string;
@@ -148,4 +148,13 @@ export interface SavedTender {
   tenderId: string;
   savedAt: string;
   trackingStatus: "new" | "reviewing" | "saved" | "submission_pending" | "closed";
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  companyName: string;
+  role: 'admin' | 'user';
+  createdAt: string;
 }

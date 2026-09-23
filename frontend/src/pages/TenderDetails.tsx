@@ -14,7 +14,9 @@ import { tenderService } from "../services/tenderService";
 import { companyService } from "../services/companyService";
 import { savedTenderService } from "../services/savedTenderService";
 import { Tender, CompanyProfile } from "../types";
-import { Bot, Bookmark, ArrowLeft, AlertTriangle, Radio } from "lucide-react";
+import { Bot, Bookmark, ArrowLeft, AlertTriangle, Radio, CheckCircle } from "lucide-react";
+import { mockBidData } from "../data/bidding";
+import EligibilityAnalysis from "../components/tender/EligibilityAnalysis";
 
 type Tab = "overview" | "requirements" | "documents" | "chat";
 
@@ -27,6 +29,8 @@ export default function TenderDetails() {
   const [isSaved, setIsSaved] = useState(false);
   const [tracking, setTracking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isBidOpen, setIsBidOpen] = useState(false);
+  const [isEligibilityOpen, setIsEligibilityOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -122,26 +126,329 @@ export default function TenderDetails() {
 
         <TenderHeader tender={tender} />
 
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant={isSaved ? "primary" : "outline"}
-            onClick={handleSaveToggle}
-            disabled={saving}
-          >
-            <Bookmark size={18} className="mr-2" />
-            {isSaved ? "Saved" : "Save Tender"}
-          </Button>
-          {isSaved && (
-            <Button variant={tracking ? "primary" : "outline"} onClick={handleTrackToggle}>
-              <Radio size={18} className="mr-2" />
-              {tracking ? "Tracking ON" : "Track Tender"}
+<div className="flex flex-wrap gap-3">
+           <Button
+             variant={isSaved ? "primary" : "outline"}
+             onClick={handleSaveToggle}
+             disabled={saving}
+           >
+             <Bookmark size={18} className="mr-2" />
+             {isSaved ? "Saved" : "Save Tender"}
+           </Button>
+           {isSaved && (
+             <Button variant={tracking ? "primary" : "outline"} onClick={handleTrackToggle}>
+               <Radio size={18} className="mr-2" />
+               {tracking ? "Tracking ON" : "Track Tender"}
+             </Button>
+           )}
+           <Link to={`/compare?tender=${tender.id}`}>
+             <Button variant="outline">Compare</Button>
+           </Link>
+           <Button variant="primary" onClick={() => setIsBidOpen(!isBidOpen)}>
+             Start Bid
+           </Button>
+<Button variant="secondary" onClick={() => setIsEligibilityOpen(!isEligibilityOpen)}>
+              <CheckCircle size={18} className="mr-2" />
+              Check My Eligibility
             </Button>
-          )}
-          <Link to={`/compare?tender=${tender.id}`}>
-            <Button variant="outline">Compare</Button>
-          </Link>
-        </div>
+          </div>
+         {isEligibilityOpen && (
+           <EligibilityAnalysis 
+             onClose={() => setIsEligibilityOpen(false)}
+             onStartBid={() => {
+               setIsEligibilityOpen(false);
+               setIsBidOpen(true);
+             }}
+           />
+         )}
+         
+         {isBidOpen && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Bid Preparation</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Tender name</span>
+                  <span className="font-medium text-slate-900">{mockBidData.tender.name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Tender value</span>
+                  <span className="font-medium text-slate-900">{mockBidData.tender.value}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Submission deadline</span>
+                  <span className="font-medium text-slate-900">{mockBidData.tender.submissionDeadline}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Department</span>
+                  <span className="font-medium text-slate-900">{mockBidData.tender.department}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Bid preparation progress</span>
+                  <span className="font-medium text-slate-900">{mockBidData.finalReview.progress}%</span>
+                </div>
+              </div>
+            </div>
 
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Eligibility</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Experience requirement</span>
+                  <span className="font-medium text-slate-900">{mockBidData.eligibility.experience}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Turnover requirement</span>
+                  <span className="font-medium text-slate-900">{mockBidData.eligibility.turnover}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Similar project requirement</span>
+                  <span className="font-medium text-slate-900">{mockBidData.eligibility.similarProject}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Certifications</span>
+                  <span className="font-medium text-slate-900">{mockBidData.eligibility.certifications.join(', ')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Preliminary Match status</span>
+                  <span className={mockBidData.eligibility.matchStatus === 'Full Match' ? 'text-green-600' : mockBidData.eligibility.matchStatus === 'Partial Match' ? 'text-amber-600' : 'text-red-600'}>
+                    {mockBidData.eligibility.matchStatus}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Required Documents</h3>
+              <div className="space-y-2">
+                {mockBidData.requiredDocuments.map((doc, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    {doc.status === 'available' ? (
+                      <span className="text-green-600">✓</span>
+                    ) : doc.status === 'needsVerification' ? (
+                      <span className="text-amber-600">⚠</span>
+                    ) : (
+                      <span className="text-red-600">✕</span>
+                    )}
+                    <span className={doc.status === 'available' ? 'text-slate-700' : doc.status === 'needsVerification' ? 'text-slate-600' : 'text-slate-900 font-medium'}>
+                      {doc.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Technical Bid</h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Company Profile</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.companyProfile}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Technical Experience</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.technicalExperience}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Similar Projects</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.similarProjects.join(', ')}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Methodology</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.methodology}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Manpower</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.manpower}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Equipment</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.equipment}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-slate-900">Certifications</h4>
+                  <p className="text-sm text-slate-700">{mockBidData.technicalBid.certifications.join(', ')}</p>
+                </div>
+                <div className="mt-4">
+                  <Button variant="outline" size="sm">Prepare Draft</Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Financial / BOQ</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Item</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500">Quantity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500">Unit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500">Rate</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {mockBidData.financialBoq.map((item, index) => (
+                      <tr key={index} className="bg-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.item}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.quantity}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.unit}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.rate}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+<tfoot className="bg-slate-50">
+                     <tr>
+                       <td colSpan={4} className="px-6 py-4 text-right text-sm font-medium text-slate-500">
+                         Subtotal
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                         {mockBidData.financialBoq.reduce((sum, item) => sum + item.amount, 0)}
+                       </td>
+                     </tr>
+<tr>
+                       <td colSpan={4} className="px-6 py-4 text-right text-sm font-medium text-slate-500">
+                         GST (18%)
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                         {Math.round(mockBidData.financialBoq.reduce((sum, item) => sum + item.amount, 0) * 0.18)}
+                       </td>
+                     </tr>
+<tr>
+                       <td colSpan={4} className="px-6 py-4 text-right text-sm font-medium text-slate-500">
+                         Total Bid Value
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-bold">
+                         {Math.round(mockBidData.financialBoq.reduce((sum, item) => sum + item.amount, 0) * 1.18)}
+                       </td>
+                     </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Compliance Checklist</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Eligibility</span>
+                  <span className="font-medium text-slate-900">{mockBidData.complianceChecklist.eligibility}%</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Documents</span>
+                  <span className="font-medium text-slate-900">{mockBidData.complianceChecklist.documents}%</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Technical Requirements</span>
+                  <span className="font-medium text-slate-900">{mockBidData.complianceChecklist.technicalRequirements}%</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Financial Requirements</span>
+                  <span className="font-medium text-slate-900">{mockBidData.complianceChecklist.financialRequirements}%</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-slate-600">Declarations</span>
+                  <span className="font-medium text-slate-900">{mockBidData.complianceChecklist.declarations}%</span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-slate-600">Overall Completion</span>
+                    <span className="font-medium text-slate-900">{mockBidData.finalReview.progress}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-200 mt-1">
+                    <div
+                      className="h-2 rounded-full bg-blue-600 transition-all"
+                      style={{ width: `${mockBidData.finalReview.progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">AI Bid Assistant</h3>
+              <div className="space-y-3">
+                {mockBidData.aiAssistant.questions.map((qa, index) => (
+                  <div key={index} className="border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-2">
+                      <Bot size={16} className="mt-1 text-blue-500" />
+                      <div>
+                        <p className="font-medium text-slate-900">{qa.question}</p>
+                        <p className="text-sm text-slate-700">{qa.answer}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-900">Final Review</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  {mockBidData.finalReview.eligibility ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-red-600">✕</span>
+                  )}
+                  <span className="text-slate-600">Eligibility reviewed</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {mockBidData.finalReview.documents ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-red-600">✕</span>
+                  )}
+                  <span className="text-slate-600">Documents checked</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {mockBidData.finalReview.technicalBid ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-red-600">✕</span>
+                  )}
+                  <span className="text-slate-600">Technical bid prepared</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {mockBidData.finalReview.financialBoq ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-red-600">✕</span>
+                  )}
+                  <span className="text-slate-600">BOQ reviewed</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {mockBidData.finalReview.declarations ? (
+                    <span className="text-green-600">✓</span>
+                  ) : (
+                    <span className="text-red-600">✕</span>
+                  )}
+                  <span className="text-slate-600">Declarations checked</span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-slate-600">Preparation Progress</span>
+                    <span className="font-medium text-slate-900">{mockBidData.finalReview.progress}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-200 mt-1">
+                    <div
+                      className="h-2 rounded-full bg-blue-600 transition-all"
+                      style={{ width: `${mockBidData.finalReview.progress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Button variant="primary">Ready for Official Submission</Button>
+                </div>
+                <div className="mt-4">
+                  <Button variant="outline">Open Official Procurement Portal</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {tender.aiSummary && <TenderSummary summary={tender.aiSummary} />}
 
         {tender.thingsToCheck && tender.thingsToCheck.length > 0 && (
